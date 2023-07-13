@@ -1,11 +1,11 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -36,6 +36,8 @@ class MainWindow extends JFrame {
 
         this.add(panel);
 
+        panel.addComponentListener(new MainPanelListener());
+
         Timer timer = new Timer(100, new PaintPanelListener(panel));
         timer.start();
     }
@@ -44,8 +46,6 @@ class MainWindow extends JFrame {
 class PaintPanelListener implements ActionListener {
 
     JPanel panel;
-    int x = 0;
-    int y = 0;
 
     public PaintPanelListener(JPanel panel) {
         this.panel = panel;
@@ -53,17 +53,27 @@ class PaintPanelListener implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        System.out.println((new SimpleDateFormat("HH:mm:ss")).format(new Date()));
-        x += 10; y += 10;
-        ((MainPanel) panel).repaintImage(x, y);
+        ((MainPanel) panel).repaintImage();
+    }
+}
+
+class MainPanelListener extends ComponentAdapter {
+    @Override
+    public void componentResized(ComponentEvent e) {
+        super.componentResized(e);
+        ((MainPanel) e.getComponent()).init = false;
     }
 }
 
 class MainPanel extends JPanel {
     BufferedImage image;
+    int x, y, dx, dy;
+    boolean init;
 
     public MainPanel() {
         super();
+
+        init = false;
 
         try {
             image = ImageIO.read(new File("duck.png"));
@@ -72,16 +82,31 @@ class MainPanel extends JPanel {
         }
     }
 
+    public void initDimensions() {
+        x = 0; y = 0;
+        dx = getWidth() / 40;
+        dy = getHeight() / 40;
+        init = true;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        g.setColor(Color.LIGHT_GRAY);
-        g.drawImage(image, 0, 0, this);
+
+        if (!init) {
+            initDimensions();
+        }
+
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, getWidth(), getHeight());
+        g.drawImage(image, x, y, this);
+        x += dx; y += dy;
+        if (x > getWidth() || y > getHeight()) {
+            initDimensions();
+        }
     }
 
-    public void repaintImage(int x, int y) {
-        this.getGraphics().setColor(Color.GREEN);
-        this.getGraphics().fillRect(0, 0, 800, 600);
-        this.getGraphics().drawImage(image, x, y, this);
+    public void repaintImage() {
+        repaint();
     }
 }
